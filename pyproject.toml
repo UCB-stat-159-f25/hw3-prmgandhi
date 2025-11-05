@@ -17,6 +17,7 @@ dependencies = [
     "h5py",
     "matplotlib",
     "ipykernel==6.29",
+    "gwpy" #used in a test
 ]
 
 dynamic = ["version"]
