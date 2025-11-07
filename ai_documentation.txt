@@ -1,0 +1,56 @@
+For this assignment I used OpenAI's ChatGPT to help me with some issues I ran into and questions that I had. Here are the relevant prompts and responses:
+
+Prompt: "can i write a simple test for this that just inputs the wrong data type and immediately raises and exception? "def read_frame(filename, ifo, readstrain=True, strain_chan=None, dq_chan=None, inj_chan=None): """ Helper function to read frame files """ from gwpy.timeseries import TimeSeries if ifo is None: raise TypeError("""To read GWF data, ifo must be 'H1', 'H2', or 'L1'. def loaddata(filename, ifo=None):""") #-- Read strain channel if strain_chan is None: strain_chan = ifo + ':LOSC-STRAIN'..."
+Response: "Yes! You can write a very simple test using pytest.raises to check that the function immediately raises a TypeError when you pass the wrong data type for ifo.
+Here’s an example:
+import pytest
+from yourmodule import read_frame  # replace with your actual module
+def test_read_frame_raises_typeerror():
+    # Pass None for `ifo`, which should trigger the TypeError
+    with pytest.raises(TypeError) as excinfo:
+        read_frame("dummyfile.gwf", ifo=None)
+    # Optional: check that the error message contains expected text
+    assert "To read GWF data" in str(excinfo.value)"
+
+Prompt:"got ERRORS ==================================================== ______________________________ ERROR collecting ligotools/tests/test_readligo.py _______________________________ ImportError while importing test module '/home/jovyan/hw3-prmgandhi/ligotools/tests/test_readligo.py'. Hint: make sure your test modules/packages have valid Python names. Traceback: /srv/conda/envs/notebook/lib/python3.12/importlib/__init__.py:90: in import_module return _bootstrap._gcd_import(name[level:], package, level) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ligotools/tests/test_readligo.py:1: in <module> from ligotools import readligo as rl E ModuleNotFoundError: No module named 'ligotools' =========================================== short test summary info ============================================ ERROR ligotools/tests/test_readligo.py !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+Reponse: "Ah — this is a classic Python import path issue. The problem is that when you run pytest from your project root, Python doesn’t automatically see ligotools as an importable module unless it’s installed or your path is set correctly.
+Here are a few ways to fix it:
+Option 1: Install your package in “editable” mode
+From the project root (where pyproject.toml lives):
+pip install -e .
+The -e (editable) flag makes your local ligotools folder importable as a module.
+After this, from ligotools import readligo should work everywhere...."
+
+Prompt: "does ligotools/tests/__init__.py need to have anything in it"
+Response: "Nope — it can be completely empty ✅
+You just need the file itself (__init__.py) to exist so Python recognizes ligotools/tests as a package.
+So this works perfectly fine:
+# ligotools/tests/__init__.py
+# (empty file — no content needed)
+That’s enough for imports like
+from ligotools import readligo as rl
+to work correctly when you run pytest from the project root."
+
+Prompt: "how can i test: def reqshift(data, fshift=100, sample_rate=4096): """Frequency shift the signal by constant """ x = np.fft.rfft(data) T = len(data)/float(sample_rate) df = 1.0/T nbins = int(fshift/df) # print T,df,nbins,x.real.shape y = np.roll(x.real, nbins) + 1j*np.roll(x.imag, nbins) y[0:nbins] = 0. z = np.fft.irfft(y) return z"
+Response: "Here’s an example pytest test for your write_wavfile function:
+import numpy as np
+import tempfile
+from scipy.io import wavfile
+import utils  # your module with write_wavfile
+def test_write_wavfile_creates_valid_wav():
+    # generate dummy data
+    fs = 1024
+    data = np.sin(2*np.pi*10*np.linspace(0, 1, fs))
+    # use a temporary file
+    with tempfile.NamedTemporaryFile(suffix=".wav") as tmpfile:
+        filename = tmpfile.name
+        utils.write_wavfile(filename, fs, data)
+        # read it back and verify
+        fs_read, data_read = wavfile.read(filename)
+        assert fs_read == fs
+        assert len(data_read) == len(data)
+        assert np.all(np.abs(data_read) <= 32767)
+✅ Key points:
+tempfile.NamedTemporaryFile ensures the file is created in a safe temporary location and automatically deleted when the with block exits.
+Checks basic correctness: sample rate, length, and amplitude scaling.
+This pattern is the standard way to test file-writing functions in CI environments without polluting your repo."
